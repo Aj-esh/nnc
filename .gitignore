@@ -1,0 +1,22 @@
+# Build artifacts
+obj/
+bin/
+*.o
+*.a
+*.so
+*.dylib
+
+# Executables
+nnc
+main
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Temporary files
+/tmp/
+*.tmp
