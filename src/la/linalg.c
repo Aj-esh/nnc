@@ -1,5 +1,5 @@
-#include "linalg.h"
-#include "blas.h"
+#include "la/linalg.h"
+#include "poolla/blas.h"
 #include "poolla/thread_pool.h"
 #include <string.h>
 #include <stdio.h>
@@ -111,7 +111,6 @@ typedef struct {
 
 static void matadd_task(void *arg) {
     MatOpArgs *args = (MatOpArgs*)arg;
-    int size = args->A->row * args->A->col;
     // Simple split by linear index for element-wise ops
     for(int i = args->start; i < args->end; i++) {
         args->C->data[i] = args->A->data[i] + args->B->data[i];
@@ -208,12 +207,8 @@ Matrix* transpose(const Matrix* A) {
     return At;
 }
 
-static void hadamard_task(void *arg) {
-    matscale_task(arg); // Same as scale
-}
-
 Matrix* hadamard(const Matrix* A, const Matrix* B) {
-    // Re-use matscale logic
+    // matscale logic
     return matscale(A, B);
 }
 

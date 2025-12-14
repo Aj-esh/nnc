@@ -3,6 +3,10 @@
 #include "poolla/blas.h"
 #include "la/linalg.h"
 
+static inline int imin(int a, int b) {
+    return (a < b) ? a : b;
+}
+
 typedef struct {
     int start_row, end_row;
     double a, b;
@@ -73,7 +77,7 @@ void dvv_task(void *args) {
     free(data);
 }
 
-void dvv(ThreadPool *pool, double a, Matrix *A, double b, Matrix *B) {
+void dvv(ThreadPool *pool, double a,const Matrix *A, double b, Matrix *B) {
     /**
      * B := a * A + b * B
      * @param pool ThreadPool to use for parallelism
@@ -135,7 +139,7 @@ void dmv_task(void *args) {
     free(data);
 }
 
-void dmv(ThreadPool *pool, double a, Matrix *A, Matrix *B, double b, Matrix *C) {
+void dmv(ThreadPool *pool, double a, const Matrix *A, const Matrix *B, double b, Matrix *C) {
     /**
      * C := a * A * B + b * C
      *
@@ -203,7 +207,7 @@ void dmm_task(void *args) {
     free(data);
 }
 
-void *dmm(ThreadPool *pool, double a, Matrix *A, Matrix *B, double b, Matrix *C) {
+void *dmm(ThreadPool *pool, double a, const Matrix *A, const Matrix *B, double b, Matrix *C) {
     /**
      * C := a * A * B + b * C
      *

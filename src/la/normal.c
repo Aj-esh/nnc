@@ -1,4 +1,3 @@
-#include "poolla/blas.h"
 #include "la/linalg.h"
 #include "la/normal.h"
 
@@ -92,7 +91,18 @@ Matrix* matrix_randn(size_t row, size_t col, double mean, double std) {
 }
 
 Matrix* He_init(size_t row, size_t col, int fan_in){
-    if(fan_in == -1) fan_in = row;
-    double std = sqrt(2.0 / fan_in);
+    if(fan_in == -1) fan_in = (int)row;
+    double std = sqrt(2.0 / (double)fan_in);
+    return matrix_randn(row, col, 0.0, std);
+}
+
+Matrix* Xavier_init(size_t row, size_t col, int fan_in, int fan_out) {
+    if(fan_in == -1) fan_in = (int)row;
+    if(fan_out == -1) fan_out = (int)col;
+
+    const double denom = (double)fan_in + (double)fan_out;
+    if(denom <= 0.0) return NULL;
+
+    const double std = sqrt(2.0 / denom);
     return matrix_randn(row, col, 0.0, std);
 }

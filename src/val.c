@@ -47,6 +47,6 @@ void train_val_split(const Matrix *X, const Matrix *Y,
 }
 
 void print_val_result(const ValResult *result, int epoch) {
-    printf("  Val   - Loss: %.6f, RMSE: %.6f, R²: %.6f\n", 
-           result->loss, result->rmse, result->r_squared);
+    printf("%d:  Val   - Loss: %.6f, RMSE: %.6f, R²: %.6f\n", 
+           epoch, result->loss, result->rmse, result->r_squared);
 }

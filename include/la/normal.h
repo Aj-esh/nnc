@@ -30,4 +30,15 @@ Matrix* matrix_randn(size_t row, size_t col, double mean, double std);
  */
 Matrix* He_init(size_t row, size_t col, int fan_in);
 
+/**
+ * Xavier initialization for weights matrix (row, col)
+ * @param row number of rows
+ * @param col number of columns
+ * @param fan_in number of input units
+ * @param fan_out number of output units
+ * @return pointer to created Matrix, or NULL on failure
+ */
+Matrix* Xavier_init(size_t row, size_t col, int fan_in, int fan_out);
+
+
 #endif // LA_NORMAL_H

@@ -7,16 +7,16 @@ NN* net_create(int input, int hidden1, int hidden2, int hidden3, int output) {
     NN *net = malloc(sizeof(NN));
     la_init();
 
-    net->W1 = He_init(input, hidden1, input);
+    net->W1 = Xavier_init((size_t)input,   (size_t)hidden1, input,   hidden1);
     net->b1 = create_matrix(1, hidden1);
-    
-    net->W2 = He_init(hidden1, hidden2, hidden1);
+
+    net->W2 = Xavier_init((size_t)hidden1, (size_t)hidden2, hidden1, hidden2);
     net->b2 = create_matrix(1, hidden2);
 
-    net->W3 = He_init(hidden2, hidden3, hidden2);
+    net->W3 = Xavier_init((size_t)hidden2, (size_t)hidden3, hidden2, hidden3);
     net->b3 = create_matrix(1, hidden3);
 
-    net->W4 = He_init(hidden3, output, hidden3);
+    net->W4 = Xavier_init((size_t)hidden3, (size_t)output,  hidden3, output);
     net->b4 = create_matrix(1, output);
 
     return net;
