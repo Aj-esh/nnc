@@ -1,6 +1,6 @@
 #include "linalg.h"
 #include "blas.h"
-#include "thread_pool.h"
+#include "poolla/thread_pool.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +17,11 @@ void la_init() {
         }
         pool = threadpool_init(num_threads > 0 ? num_threads : 1);
     }
+}
+
+ThreadPool* get_la_pool() {
+    if(!pool) la_init();
+    return pool;
 }
 
 void la_destroy() {
@@ -97,65 +102,176 @@ Matrix* matmul(const Matrix* A, const Matrix* B) {
     return C;
 }
 
+// Helper for parallel tasks
+typedef struct {
+    const Matrix *A, *B;
+    Matrix *C;
+    int start, end;
+} MatOpArgs;
+
+static void matadd_task(void *arg) {
+    MatOpArgs *args = (MatOpArgs*)arg;
+    int size = args->A->row * args->A->col;
+    // Simple split by linear index for element-wise ops
+    for(int i = args->start; i < args->end; i++) {
+        args->C->data[i] = args->A->data[i] + args->B->data[i];
+    }
+}
+
 Matrix* matadd(const Matrix* A, const Matrix* B) {
     assert(A->row == B->row && A->col == B->col && "matrix dim A != B");
     Matrix* C = create_matrix(A->row, A->col);
-    if(!C) {
-        return NULL;
-    }
+    if(!C) return NULL;
     
-    if(A->col == 1) {
-        if(!pool) 
-            la_init();
-        
-        memcpy(C->data, B->data, A->row * A->col * sizeof(double));
-        dvv(pool, 1.0, A, 1.0, C);
-    }
+    ThreadPool *tp = get_la_pool();
+    int total = A->row * A->col;
+    int num_threads = tp->tcount;
+    int chunk = (total + num_threads - 1) / num_threads;
 
-    int size = A->row * A->col;
-    for(int i = 0; i < size; i++) {
-        C->data[i] = A->data[i] + B->data[i];
+    for(int i=0; i<num_threads; i++) {
+        int start = i * chunk;
+        int end = (start + chunk > total) ? total : start + chunk;
+        if(start >= end) break;
+
+        MatOpArgs *args = malloc(sizeof(MatOpArgs));
+        args->A = A; args->B = B; args->C = C;
+        args->start = start; args->end = end;
+        threadpool_submit(tp, matadd_task, args);
     }
+    threadpool_wait(tp);
     return C;
+}
+
+static void matscale_task(void *arg) {
+    MatOpArgs *args = (MatOpArgs*)arg;
+    for(int i = args->start; i < args->end; i++) {
+        args->C->data[i] = args->A->data[i] * args->B->data[i];
+    }
 }
 
 Matrix* matscale(const Matrix* A, const Matrix* B) {
     assert(A->row == B->row && A->col == B->col && "matrix dim A != B");
     Matrix* C = create_matrix(A->row, A->col);
-    if(!C) {
-        return NULL;
+    if(!C) return NULL;
+
+    ThreadPool *tp = get_la_pool();
+    int total = A->row * A->col;
+    int num_threads = tp->tcount;
+    int chunk = (total + num_threads - 1) / num_threads;
+
+    for(int i=0; i<num_threads; i++) {
+        int start = i * chunk;
+        int end = (start + chunk > total) ? total : start + chunk;
+        if(start >= end) break;
+
+        MatOpArgs *args = malloc(sizeof(MatOpArgs));
+        args->A = A; args->B = B; args->C = C;
+        args->start = start; args->end = end;
+        threadpool_submit(tp, matscale_task, args);
     }
-    int size = A->row * A->col;
-    for(int i = 0; i < size; i++) {
-        C->data[i] = A->data[i] * B->data[i];
-    }
+    threadpool_wait(tp);
     return C;
+}
+
+static void transpose_task(void *arg) {
+    MatOpArgs *args = (MatOpArgs*)arg;
+    // Split by rows of A
+    for(int i = args->start; i < args->end; i++) {
+        for(int j = 0; j < args->A->col; j++) {
+            args->C->data[j * args->C->col + i] = args->A->data[i * args->A->col + j];
+        }
+    }
 }
 
 Matrix* transpose(const Matrix* A) {
     Matrix* At = create_matrix(A->col, A->row);
-    if(!At) {
-        return NULL;
+    if(!At) return NULL;
+
+    ThreadPool *tp = get_la_pool();
+    int num_threads = tp->tcount;
+    int chunk = (A->row + num_threads - 1) / num_threads;
+
+    for(int i=0; i<num_threads; i++) {
+        int start = i * chunk;
+        int end = (start + chunk > A->row) ? A->row : start + chunk;
+        if(start >= end) break;
+
+        MatOpArgs *args = malloc(sizeof(MatOpArgs));
+        args->A = A; args->C = At;
+        args->start = start; args->end = end;
+        threadpool_submit(tp, transpose_task, args);
     }
-    for(int i = 0; i < A->row; i++) {
-        for(int j = 0; j < A->col; j++) {
-            At->data[j * At->col + i] = A->data[i * A->col + j];
-        }
-    }
+    threadpool_wait(tp);
     return At;
 }
 
+static void hadamard_task(void *arg) {
+    matscale_task(arg); // Same as scale
+}
+
 Matrix* hadamard(const Matrix* A, const Matrix* B) {
-    assert(A->row == B->row && A->col == B->col && "matrix dim A != B");
-    Matrix* C = create_matrix(A->row, A->col);
-    if(!C) {
-        return NULL;
+    // Re-use matscale logic
+    return matscale(A, B);
+}
+
+static void add_bias_task(void *arg) {
+    MatOpArgs *args = (MatOpArgs*)arg;
+    // Split by rows of Z
+    for(int i = args->start; i < args->end; i++) {
+        for(int j = 0; j < args->A->col; j++) {
+            args->A->data[i * args->A->col + j] += args->B->data[j];
+        }
     }
-    int size = A->row * A->col;
-    for(int i = 0; i < size; i++) {
-        C->data[i] = A->data[i] * B->data[i];
+}
+
+void mat_add_bias(Matrix *Z, const Matrix *b) {
+    ThreadPool *tp = get_la_pool();
+    int num_threads = tp->tcount;
+    int chunk = (Z->row + num_threads - 1) / num_threads;
+
+    for(int i=0; i<num_threads; i++) {
+        int start = i * chunk;
+        int end = (start + chunk > Z->row) ? Z->row : start + chunk;
+        if(start >= end) break;
+
+        MatOpArgs *args = malloc(sizeof(MatOpArgs));
+        args->A = Z; args->B = b;
+        args->start = start; args->end = end;
+        threadpool_submit(tp, add_bias_task, args);
     }
-    return C;
+    threadpool_wait(tp);
+}
+
+static void sum_rows_task(void *arg) {
+    MatOpArgs *args = (MatOpArgs*)arg;
+    // Split by columns (output size)
+    for(int j = args->start; j < args->end; j++) {
+        double sum = 0.0;
+        for(int i = 0; i < args->A->row; i++) {
+            sum += args->A->data[i * args->A->col + j];
+        }
+        args->C->data[j] += sum;
+    }
+}
+
+Matrix* mat_sum_rows(const Matrix *dA) {
+    Matrix *db = create_matrix(1, dA->col);
+    ThreadPool *tp = get_la_pool();
+    int num_threads = tp->tcount;
+    int chunk = (dA->col + num_threads - 1) / num_threads;
+
+    for(int i=0; i<num_threads; i++) {
+        int start = i * chunk;
+        int end = (start + chunk > dA->col) ? dA->col : start + chunk;
+        if(start >= end) break;
+
+        MatOpArgs *args = malloc(sizeof(MatOpArgs));
+        args->A = dA; args->C = db;
+        args->start = start; args->end = end;
+        threadpool_submit(tp, sum_rows_task, args);
+    }
+    threadpool_wait(tp);
+    return db;
 }
 
 // test 

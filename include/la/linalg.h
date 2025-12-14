@@ -5,12 +5,28 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "../poolla/thread_pool.h"
 
 // Matrix structure
 typedef struct {
     int row, col;
     double* data;
 } Matrix;
+
+/**
+ * Initialize Linear Algebra library (Thread Pool)
+ */
+void la_init();
+
+/**
+ * Destroy Linear Algebra library
+ */
+void la_destroy();
+
+/**
+ * Get the shared thread pool
+ */
+ThreadPool* get_la_pool();
 
 /**
  * Create Matrix (row, col)
@@ -81,5 +97,16 @@ Matrix* transpose(const Matrix* A);
  */
 Matrix* hadamard(const Matrix* A, const Matrix* B);
 
+/**
+ * Add row vector b to every row of Z (broadcasting)
+ * Z = Z + b
+ */
+void mat_add_bias(Matrix *Z, const Matrix *b);
+
+/**
+ * Sum rows of dA to produce a row vector db
+ * db[j] = sum_i(dA[i][j])
+ */
+Matrix* mat_sum_rows(const Matrix *dA);
 
 #endif // LA_LINALG_H

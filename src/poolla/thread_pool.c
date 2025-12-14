@@ -1,4 +1,4 @@
-#include "thread_pool.h"
+#include "poolla/thread_pool.h"
 #include <stdlib.h>
 #include <stdio.h> 
 
@@ -43,7 +43,7 @@ static void* tp_worker (void* arg) {
     return NULL;
 }
 
-ThreadPool* thread_pool_init(int nthreads) {
+ThreadPool* threadpool_init(int nthreads) {
     ThreadPool *pool = (ThreadPool*) malloc(sizeof(ThreadPool));
     if(pool == NULL) {
         return NULL;

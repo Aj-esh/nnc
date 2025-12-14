@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "include/poolla/blas.h"
+#include "poolla/blas.h"
+#include "la/linalg.h"
 
 typedef struct {
     int start_row, end_row;
@@ -25,11 +26,6 @@ void dsv(ThreadPool *pool, double a, Matrix *x, double b) {
      * @param x Vector to be scaled and shifted
      * @param b Scalar to be added
      */
-    if(x->col != 1) {
-        fprintf(stderr, "Matrix x is not a vector\n");
-        exit(EXIT_FAILURE);
-    }
-
     int chunks = x->row / pool->tcount;
     if (chunks == 0)
         chunks = 1;
@@ -188,7 +184,7 @@ void dmm_task(void *args) {
     free(data);
 }
 
-void *dmm(ThreadPool *pool, int a, Matrix *A, Matrix *B, int b, Matrix *C) {
+void *dmm(ThreadPool *pool, double a, Matrix *A, Matrix *B, double b, Matrix *C) {
     /**
      * C := a * A * B + b * C
      *
