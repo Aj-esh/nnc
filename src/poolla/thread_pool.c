@@ -5,12 +5,11 @@
 // function for each worker thread
 static void* tp_worker (void* arg) {
     ThreadPool *pool = (ThreadPool*) arg;
-    Task* task;
 
     while(1) {
         pthread_mutex_lock(&(pool->lock)); // lock the pool
-        // wait for new task or shutdown signal
-        while(pool->active == 0 && !pool->shutdown) {
+        // Wait until there's actually a task in the queue
+        while(pool->head == NULL && !pool->shutdown) {
             pthread_cond_wait(&(pool->notify), &(pool->lock));
         }
 
@@ -20,7 +19,7 @@ static void* tp_worker (void* arg) {
         }
 
         // dequeue a task
-        task = pool->head;
+        Task* task = pool->head;
         pool->head = task->next;
         if(pool->head == NULL) {
             pool->tail = NULL;

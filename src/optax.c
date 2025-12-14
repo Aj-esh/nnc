@@ -14,6 +14,7 @@ static void sgd_task(void *arg) {
     for(int i=a->start; i<a->end; i++) {
         a->W->data[i] -= a->lr * a->dW->data[i];
     }
+    free(a);
 }
 
 void sgd(Matrix *W, Matrix *dW, double lr) {
@@ -78,6 +79,7 @@ static void adam_task(void *arg) {
 
         a->W->data[i] -= a->lr * mh / (sqrt(vh) + st->eps);
     }
+    free(a);
 }
 
 void adam (Matrix *W, Matrix *dW, AdamState *st, double lr) {

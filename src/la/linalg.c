@@ -116,6 +116,7 @@ static void matadd_task(void *arg) {
     for(int i = args->start; i < args->end; i++) {
         args->C->data[i] = args->A->data[i] + args->B->data[i];
     }
+    free(args);
 }
 
 Matrix* matadd(const Matrix* A, const Matrix* B) {
@@ -147,6 +148,7 @@ static void matscale_task(void *arg) {
     for(int i = args->start; i < args->end; i++) {
         args->C->data[i] = args->A->data[i] * args->B->data[i];
     }
+    free(args);
 }
 
 Matrix* matscale(const Matrix* A, const Matrix* B) {
@@ -181,6 +183,7 @@ static void transpose_task(void *arg) {
             args->C->data[j * args->C->col + i] = args->A->data[i * args->A->col + j];
         }
     }
+    free(args);
 }
 
 Matrix* transpose(const Matrix* A) {
@@ -222,6 +225,7 @@ static void add_bias_task(void *arg) {
             args->A->data[i * args->A->col + j] += args->B->data[j];
         }
     }
+    free(args);
 }
 
 void mat_add_bias(Matrix *Z, const Matrix *b) {
@@ -252,6 +256,7 @@ static void sum_rows_task(void *arg) {
         }
         args->C->data[j] += sum;
     }
+    free(args);
 }
 
 Matrix* mat_sum_rows(const Matrix *dA) {

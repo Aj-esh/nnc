@@ -14,6 +14,7 @@ static void relu_task(void *args) {
     for(int i=a->s; i < a->e; i++) {
         a->A->data[i] = fmax(0.0, a->Z->data[i]);
     }
+    free(a);
 }
 
 Matrix *relu(const Matrix *Z) {
@@ -44,6 +45,7 @@ static void drelu_task(void *args) {
     for(int i=a->s; i < a->e; i++) {
         a->A->data[i] = (a->Z->data[i] > 0.0) ? a->dZ->data[i] : 0.0;
     }
+    free(a);
 }
 
 Matrix* drelu(const Matrix *Z, const Matrix *dZ) {

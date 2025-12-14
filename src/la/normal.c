@@ -64,6 +64,7 @@ static void randn_task(void *arg) {
     for(int i = a->start; i < a->end; i++) {
         a->m->data[i] = randn_r(a->mean, a->std, &seed);
     }
+    free(a);
 }
 
 Matrix* matrix_randn(size_t row, size_t col, double mean, double std) {

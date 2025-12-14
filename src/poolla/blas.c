@@ -26,20 +26,29 @@ void dsv(ThreadPool *pool, double a, Matrix *x, double b) {
      * @param x Vector to be scaled and shifted
      * @param b Scalar to be added
      */
-    int chunks = x->row / pool->tcount;
-    if (chunks == 0)
-        chunks = 1;
+    if(x->col != 1) {
+        fprintf(stderr, "dsv expects x to be a column vector (n,1)\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    int total = x->row;
+    int num_threads = pool->tcount > 0 ? pool->tcount : 1;
+    int chunk = (total + num_threads - 1) / num_threads;
 
-    for(int i=0; i<pool->tcount; i++) {
+    for(int i=0; i<num_threads; i++) {
+        int start = i * chunk;
+        int end = imin(start + chunk, total);
+        if(start >= end) 
+            break;
+
         dsv_args *args = malloc(sizeof(dsv_args));
         if(!args) {
             perror("Failed to allocate memory for dsv_args");
             exit(EXIT_FAILURE);
         }
 
-        args->start_row = i * chunks;
-        args->end_row = (i == pool->tcount - 1) ? x->row : (i + 1) * chunks;
-
+        args->start_row = start;
+        args->end_row = end;
         args->a = a;
         args->x = x;
         args->b = b;
@@ -78,19 +87,24 @@ void dvv(ThreadPool *pool, double a, Matrix *A, double b, Matrix *B) {
         exit(EXIT_FAILURE);
     }
 
-    int chunks = A->row / pool->tcount;
-    if(chunks == 0)
-        chunks = 1;
+    int total = A->row;
+    int num_threads = pool->tcount > 0 ? pool->tcount : 1;
+    int chunk = (total + num_threads - 1) / num_threads;
 
-    for(int i=0; i<pool->tcount; i++) {
+    for(int i=0; i<num_threads; i++) {
+        int start = i * chunk;
+        int end = imin(start + chunk, total);
+        if(start >= end) 
+            break;
+
         dvv_args *args = malloc(sizeof(dvv_args));
         if(!args) {
             perror("Failed to allocate memory for dvv_args");
             exit(EXIT_FAILURE);
         }
 
-        args->start_row = i * chunks;
-        args->end_row = (i == pool->tcount - 1) ? A->row : (i + 1) * chunks;
+        args->start_row = start;
+        args->end_row = end;
 
         args->a = a;
         args->A = A;
@@ -137,19 +151,24 @@ void dmv(ThreadPool *pool, double a, Matrix *A, Matrix *B, double b, Matrix *C) 
         exit(EXIT_FAILURE);
     }
 
-    int chunks = A->row / pool->tcount;
-    if(chunks == 0)
-        chunks = 1;
+    int total = A->row;
+    int num_threads = pool->tcount > 0 ? pool->tcount : 1;
+    int chunk = (total + num_threads - 1) / num_threads;
 
-    for(int i=0; i<pool->tcount; i++) {
+    for(int i=0; i<num_threads; i++) {
+        int start = i * chunk;
+        int end = imin(start + chunk, total);
+        if(start >= end) 
+            break;
+
         dmv_args *args = malloc(sizeof(dmv_args));
         if(!args) {
             perror("Failed to allocate memory for dmv_args");
             exit(EXIT_FAILURE);
         }
 
-        args->start_row = i * chunks;
-        args->end_row = (i == pool->tcount - 1) ? A->row : (i + 1) * chunks;
+        args->start_row = start;
+        args->end_row = end;
 
         args->a = a;
         args->A = A;
@@ -201,20 +220,24 @@ void *dmm(ThreadPool *pool, double a, Matrix *A, Matrix *B, double b, Matrix *C)
         exit(EXIT_FAILURE);
     }
     
-    int chunks = A->row / pool->tcount;
-    if(chunks == 0) {
-        chunks = 1;
-    }
+    int total = A->row;
+    int num_threads = pool->tcount > 0 ? pool->tcount : 1;
+    int chunk = (total + num_threads - 1) / num_threads;
 
-    for(int i=0; i<pool->tcount; i++) {
+    for(int i=0; i<num_threads; i++) {
+        int start = i * chunk;
+        int end = imin(start + chunk, total);
+        if(start >= end) 
+            break;
         dmm_args *args = malloc(sizeof(dmm_args));
         if (!args) {
             perror("Failed to allocate memory for dmm_args");
             exit(EXIT_FAILURE);
         }
 
-        args->start_row = i * chunks;
-        args->end_row = (i == pool->tcount - 1) ? A->row : (i+1) * chunks;
+        args->start_row = start;
+        args->end_row = end;
+
         args->a = a;
         args->b = b;
         args->A = A;
